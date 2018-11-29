@@ -24,6 +24,8 @@ extern crate substrate_service;
 extern crate multisig_node_runtime;
 #[macro_use]
 extern crate structopt;
+#[macro_use]
+extern crate srml_support;
 
 mod chain_spec;
 mod service;

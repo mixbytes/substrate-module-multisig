@@ -4,7 +4,9 @@ use rstd::prelude::*;
 use parity_codec::{Encode, Decode};
 
 // Enables access to the runtime storage
-use srml_support::{StorageValue, dispatch::Result};
+use srml_support::{StorageMap, StorageValue, dispatch::Result};
+
+//use srml_support::{StorageValue, StorageMap, Parameter, Dispatchable, IsSubType};
 
 // Enables us to do hashing
 use runtime_primitives::traits::Hash;
@@ -12,9 +14,6 @@ use runtime_primitives::traits::Hash;
 // Enables access to account balances
 use {balances, system::{self, ensure_signed}};
 
-use primitives::convert_hash;
-
-use rstd::marker::PhantomData;
 
 
 pub trait Trait: balances::Trait + system::Trait {
@@ -25,7 +24,6 @@ pub trait Trait: balances::Trait + system::Trait {
 
 
 // TODO special type for multisig id
-
 decl_module! {
   pub struct Module<T: Trait> for enum Call where origin: T::Origin {
     fn deposit_event() = default;
@@ -46,10 +44,12 @@ decl_module! {
 
         let mut buf = Vec::new();
         buf.extend_from_slice(&sender.encode());
-        buf.extend_from_slice(&nonce.encode());
+        buf.extend_from_slice(&this_nonce.encode());
         let h: T::Hash = T::Hashing::hash(&buf[..]);
 
-        let walletId: T::AccountId = convert_hash(&h);
+
+		let wallet_id = T::AccountId::decode(&mut &h.encode()[..]).unwrap();
+
 //        <Owners<T>>::
 
         Ok(())
@@ -58,7 +58,29 @@ decl_module! {
     // requests withdrawal from a wallet
     // actual withdrawal will be made when there are enough signatures
     fn withdraw(origin, wallet: T::AccountId, to: T::AccountId, value: T::Balance) -> Result {
-        let sender = ensure_signed(origin)?;
+        let who = ensure_signed(origin)?;
+        ensure!(<Owners<T>>::exists(wallet.clone()), "wallet doesn't exists");
+
+		let owners = <Owners<T>>::get(wallet.clone());
+        ensure!(owners.iter().any(|owner| *owner == who), "sender isn't owner");
+
+    	let index = owners.iter().position(|owner| *owner == who).unwrap();
+
+		let mut buf = Vec::new();
+		buf.append(&mut wallet.encode());
+		buf.append(&mut to.encode());
+		buf.append(&mut value.encode());
+
+        let operation_hash = T::Hashing::hash(&buf[..]);
+
+		if !<OperationBitmask<T>>::exists(operation_hash) {
+			<OperationBitmask<T>>::insert(operation_hash, 1 << index);
+		}
+		else {
+			let bitmask = <OperationBitmask<T>>::get(operation_hash);
+			ensure!((bitmask & (1 << index)) == 0, "sender already signed");
+			<OperationBitmask<T>>::mutate(operation_hash, |bitmask| *bitmask |= 1 << index);
+		}
 
         Ok(())
     }
