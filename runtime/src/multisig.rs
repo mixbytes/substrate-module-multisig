@@ -1,3 +1,5 @@
+use rstd::prelude::*;
+
 // Encoding library
 use parity_codec::Encode;
 
@@ -22,16 +24,24 @@ decl_module! {
     fn deposit_event() = default;
 
     // creates new multi-signature wallet
-    fn create(origin, owners: Vec<T::AccountId>, signatures_required: u8) -> Result {
+    fn create(origin, owners: Vec<T::AccountId>, signatures_required: u64) -> Result {
+        Ok(())
     }
 
     // requests withdrawal from a wallet
     // actual withdrawal will be made when there are enough signatures
     fn withdraw(origin, wallet: T::AccountId, to: T::AccountId, value: T::Balance) -> Result {
+        Ok(())
     }
 
     // deposits are made using balances.transfer(to_wallet: T::AccountId, value: T::Balance)
   }
+}
+
+
+decl_storage! {
+	trait Store for Module<T: Trait> as Multisig {
+	}
 }
 
 

@@ -29,6 +29,10 @@ extern crate srml_timestamp as timestamp;
 extern crate srml_balances as balances;
 extern crate srml_upgrade_key as upgrade_key;
 
+
+mod multisig;
+
+
 #[cfg(feature = "std")]
 use parity_codec::{Encode, Decode};
 use rstd::prelude::*;
@@ -177,6 +181,11 @@ impl upgrade_key::Trait for Runtime {
 	type Event = Event;
 }
 
+impl multisig::Trait for Runtime {
+	type Event = Event;
+}
+
+
 construct_runtime!(
 	pub enum Runtime with Log(InternalLog: DigestItem<Hash, AuthorityId>) where
 		Block = Block,
@@ -187,6 +196,8 @@ construct_runtime!(
 		Consensus: consensus::{Module, Call, Storage, Config<T>, Log(AuthoritiesChange), Inherent},
 		Balances: balances,
 		UpgradeKey: upgrade_key,
+//		Multisig: multisig::{Module, Call, Storage, Config<T>},
+		Multisig: multisig,
 	}
 );
 
