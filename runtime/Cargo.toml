@@ -16,7 +16,7 @@ sr-io = { git = "https://github.com/mixbytes/substrate" }
 srml-support = { git = "https://github.com/mixbytes/substrate" }
 substrate-primitives = { git = "https://github.com/mixbytes/substrate" }
 substrate-keyring = { git = "https://github.com/mixbytes/substrate" }
-srml-balances = { git = "https://github.com/mixbytes/substrate" }
+srml-balances = { path = "../balances" }
 srml-consensus = { git = "https://github.com/mixbytes/substrate" }
 srml-executive = { git = "https://github.com/mixbytes/substrate" }
 sr-primitives = { git = "https://github.com/mixbytes/substrate" }
@@ -25,6 +25,7 @@ srml-timestamp = { git = "https://github.com/mixbytes/substrate" }
 srml-upgrade-key = { git = "https://github.com/mixbytes/substrate" }
 substrate-client = { git = "https://github.com/mixbytes/substrate", optional = true }
 sr-version = { git = "https://github.com/mixbytes/substrate" }
+
 
 [features]
 default = ["std"]

@@ -1567,7 +1567,7 @@ dependencies = [
  "sr-primitives 0.1.0 (git+https://github.com/mixbytes/substrate)",
  "sr-std 0.1.0 (git+https://github.com/mixbytes/substrate)",
  "sr-version 0.1.0 (git+https://github.com/mixbytes/substrate)",
- "srml-balances 0.1.0 (git+https://github.com/mixbytes/substrate)",
+ "srml-balances 0.1.0",
  "srml-consensus 0.1.0 (git+https://github.com/mixbytes/substrate)",
  "srml-executive 0.1.0 (git+https://github.com/mixbytes/substrate)",
  "srml-support 0.1.0 (git+https://github.com/mixbytes/substrate)",
@@ -2457,7 +2457,6 @@ dependencies = [
 [[package]]
 name = "srml-balances"
 version = "0.1.0"
-source = "git+https://github.com/mixbytes/substrate#f1960129c00e9353e6f801089e703ecdd2167dd6"
 dependencies = [
  "hex-literal 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "parity-codec 2.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -4115,7 +4114,6 @@ dependencies = [
 "checksum sr-primitives 0.1.0 (git+https://github.com/mixbytes/substrate)" = "<none>"
 "checksum sr-std 0.1.0 (git+https://github.com/mixbytes/substrate)" = "<none>"
 "checksum sr-version 0.1.0 (git+https://github.com/mixbytes/substrate)" = "<none>"
-"checksum srml-balances 0.1.0 (git+https://github.com/mixbytes/substrate)" = "<none>"
 "checksum srml-consensus 0.1.0 (git+https://github.com/mixbytes/substrate)" = "<none>"
 "checksum srml-executive 0.1.0 (git+https://github.com/mixbytes/substrate)" = "<none>"
 "checksum srml-metadata 0.1.0 (git+https://github.com/mixbytes/substrate)" = "<none>"

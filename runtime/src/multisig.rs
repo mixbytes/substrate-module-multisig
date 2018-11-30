@@ -89,6 +89,7 @@ decl_module! {
 
 		if Self::signs_count(&bitmask) == <Signatures<T>>::get(&wallet) {
 			<OperationBitmask<T>>::remove(operation_hash);
+			Self::deposit_event(RawEvent::Withdraw(wallet.clone(), to.clone(), value));
 			return <balances::Module<T>>::transfer_without_sign(wallet, balances::address::Address::Id(to), value);
 		}
 
@@ -123,9 +124,13 @@ decl_storage! {
 
 
 decl_event!(
-	pub enum Event<T> where AccountId = <T as system::Trait>::AccountId {
+	pub enum Event<T> where
+	    AccountId = <T as system::Trait>::AccountId,
+		Balance = <T as balances::Trait>::Balance
+	{
 		/// Created new wallet identified by Runtime::AccountId type.
 		Created(AccountId),
+		Withdraw(AccountId, AccountId, Balance),
 	}
 );
 
