@@ -35,7 +35,7 @@ decl_module! {
         if 0 == owners.len() || owners.len() > 64 {
             return Err("invalid number of owners");
         }
-        if signatures_required > owners.len() as u64 {
+        if 0 == signatures_required || signatures_required > owners.len() as u64 {
             return Err("invalid number of signatures");
         }
 
@@ -47,10 +47,12 @@ decl_module! {
         buf.extend_from_slice(&this_nonce.encode());
         let h: T::Hash = T::Hashing::hash(&buf[..]);
 
-
 		let wallet_id = T::AccountId::decode(&mut &h.encode()[..]).unwrap();
 
-//        <Owners<T>>::
+        <Owners<T>>::insert(&wallet_id, owners);
+        <Signatures<T>>::insert(&wallet_id, signatures_required);
+
+        Self::deposit_event(RawEvent::Created(wallet_id));
 
         Ok(())
     }
@@ -104,6 +106,10 @@ decl_storage! {
 		// Bitmask of signatures for operations
 		// Operation is Hash(operation_name, wallet id, operation parameters)
 		pub OperationBitmask get(operation_bitmask): map T::Hash => u64;
+	}
+	add_extra_genesis {
+		config(_marker): ::std::marker::PhantomData<T>;
+		build(|_, _, _| {});
 	}
 }
 

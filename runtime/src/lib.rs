@@ -104,7 +104,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	impl_name: ver_str!("multisig-node"),
 	authoring_version: 1,
 	spec_version: 1,
-	impl_version: 0,
+	impl_version: 2,
 	apis: apis_vec!([
 		(BLOCK_BUILDER, 1),
 		(TAGGED_TRANSACTION_QUEUE, 1),

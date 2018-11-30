@@ -99,5 +99,6 @@ fn testnet_genesis(initial_authorities: Vec<AuthorityId>, endowed_accounts: Vec<
 			key: upgrade_key,
 			_genesis_phantom_data: Default::default(),
 		}),
+		multisig: None,
 	}
 }
