@@ -5,6 +5,7 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit="256"]
 
+#[cfg_attr(any(feature = "std", test), macro_use)]
 extern crate sr_std as rstd;
 extern crate sr_io as runtime_io;
 #[macro_use]
@@ -104,7 +105,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	impl_name: ver_str!("multisig-node"),
 	authoring_version: 1,
 	spec_version: 1,
-	impl_version: 2,
+	impl_version: 3,
 	apis: apis_vec!([
 		(BLOCK_BUILDER, 1),
 		(TAGGED_TRANSACTION_QUEUE, 1),

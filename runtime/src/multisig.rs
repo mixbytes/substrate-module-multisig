@@ -1,7 +1,7 @@
 use rstd::prelude::*;
 
 // Encoding library
-use parity_codec::{Encode, Decode};
+use parity_codec::{Encode, Decode, HasCompact};
 
 // Enables access to the runtime storage
 use srml_support::{StorageMap, StorageValue, dispatch::Result};
@@ -15,10 +15,9 @@ use runtime_primitives::traits::Hash;
 use {balances, system::{self, ensure_signed}};
 
 
-
 pub trait Trait: balances::Trait + system::Trait {
-	/// The overarching event type.
-	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
+    /// The overarching event type.
+    type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 }
 
 
@@ -29,8 +28,11 @@ decl_module! {
     fn deposit_event() = default;
 
     // creates new multi-signature wallet
-    fn create(origin, owners: Vec<T::AccountId>, signatures_required: u64) -> Result {
+    fn create(origin, owners: Vec<balances::Address<T>>, signatures_required: <u64 as HasCompact>::Type) -> Result {
         let sender = ensure_signed(origin)?;
+
+        let owners = owners.iter().map(|owner| <balances::Module<T>>::lookup(owner.clone()).unwrap()).collect::<Vec<_>>();
+        let signatures_required: u64 = signatures_required.into();
 
         if 0 == owners.len() || owners.len() > 64 {
             return Err("invalid number of owners");
@@ -59,8 +61,12 @@ decl_module! {
 
     // requests withdrawal from a wallet
     // actual withdrawal will be made when there are enough signatures
-    fn withdraw(origin, wallet: T::AccountId, to: T::AccountId, value: T::Balance) -> Result {
+    fn withdraw(origin, wallet: balances::Address<T>, to: balances::Address<T>, value: <T::Balance as HasCompact>::Type) -> Result {
         let who = ensure_signed(origin)?;
+        let wallet = <balances::Module<T>>::lookup(wallet)?;
+        let to = <balances::Module<T>>::lookup(to)?;
+        let value = value.into();
+
         ensure!(<Owners<T>>::exists(wallet.clone()), "wallet doesn't exists");
 
 		let owners = <Owners<T>>::get(wallet.clone());
@@ -136,19 +142,19 @@ decl_event!(
 
 
 impl<T: Trait> Module<T> {
-	// PUBLIC IMMUTABLES
+    // PUBLIC IMMUTABLES
 
-	/// The combined balance of `who`.
-	pub fn signs_count(bitmask: &u64) -> u64 {
-		let mut count = 0;
-		let mut mask = *bitmask;
-		while mask > 0 {
-			if mask & 1 == 1 {
-				count += 1;
-			}
-			mask >>= 1;
-		}
+    /// The combined balance of `who`.
+    pub fn signs_count(bitmask: &u64) -> u64 {
+        let mut count = 0;
+        let mut mask = *bitmask;
+        while mask > 0 {
+            if mask & 1 == 1 {
+                count += 1;
+            }
+            mask >>= 1;
+        }
 
-		return count;
-	}
+        return count;
+    }
 }
