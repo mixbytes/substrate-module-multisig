@@ -16,7 +16,7 @@ substrate-client = { git = "https://github.com/mixbytes/substrate", default-feat
 sr-std = { git = "https://github.com/mixbytes/substrate", default-features = false }
 sr-io = { git = "https://github.com/mixbytes/substrate", default-features = false }
 srml-support = { git = "https://github.com/mixbytes/substrate", default-features = false }
-srml-balances = { git = "https://github.com/mixbytes/substrate", default-features = false }
+srml-balances = { path = "../../balances", default-features = false }
 srml-consensus = { git = "https://github.com/mixbytes/substrate", default-features = false }
 srml-executive = { git = "https://github.com/mixbytes/substrate", default-features = false }
 sr-primitives = { git = "https://github.com/mixbytes/substrate", default-features = false }

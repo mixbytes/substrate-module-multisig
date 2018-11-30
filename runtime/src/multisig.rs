@@ -75,13 +75,21 @@ decl_module! {
 
         let operation_hash = T::Hashing::hash(&buf[..]);
 
+        let bitmask: u64;
+
 		if !<OperationBitmask<T>>::exists(operation_hash) {
 			<OperationBitmask<T>>::insert(operation_hash, 1 << index);
+			bitmask = 1 << index;
 		}
 		else {
-			let bitmask = <OperationBitmask<T>>::get(operation_hash);
+			bitmask = <OperationBitmask<T>>::get(operation_hash);
 			ensure!((bitmask & (1 << index)) == 0, "sender already signed");
 			<OperationBitmask<T>>::mutate(operation_hash, |bitmask| *bitmask |= 1 << index);
+		}
+
+		if Self::signs_count(&bitmask) == <Signatures<T>>::get(&wallet) {
+			<OperationBitmask<T>>::remove(operation_hash);
+			return <balances::Module<T>>::transfer_without_sign(wallet, balances::address::Address::Id(to), value);
 		}
 
         Ok(())
@@ -120,3 +128,22 @@ decl_event!(
 		Created(AccountId),
 	}
 );
+
+
+impl<T: Trait> Module<T> {
+	// PUBLIC IMMUTABLES
+
+	/// The combined balance of `who`.
+	pub fn signs_count(bitmask: &u64) -> u64 {
+		let mut count = 0;
+		let mut mask = *bitmask;
+		while mask > 0 {
+			if mask & 1 == 1 {
+				count += 1;
+			}
+			mask >>= 1;
+		}
+
+		return count;
+	}
+}
