@@ -8,6 +8,7 @@
 #[cfg_attr(any(feature = "std", test), macro_use)]
 extern crate sr_std as rstd;
 extern crate sr_io as runtime_io;
+extern crate substrate_keyring as keyring;
 #[macro_use]
 extern crate substrate_client as client;
 #[macro_use]

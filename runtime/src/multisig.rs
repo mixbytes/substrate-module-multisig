@@ -49,7 +49,7 @@ decl_module! {
         buf.extend_from_slice(&this_nonce.encode());
         let h: T::Hash = T::Hashing::hash(&buf[..]);
 
-		let wallet_id = T::AccountId::decode(&mut &h.encode()[..]).unwrap();
+        let wallet_id = T::AccountId::decode(&mut &h.encode()[..]).unwrap();
 
         <Owners<T>>::insert(&wallet_id, owners);
         <Signatures<T>>::insert(&wallet_id, signatures_required);
@@ -156,5 +156,97 @@ impl<T: Trait> Module<T> {
         }
 
         return count;
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    extern crate sr_io as runtime_io;
+
+    use super::*;
+
+    use keyring::Keyring;
+    use primitives::{H256, Blake2Hasher};
+    use runtime_primitives::BuildStorage;
+    use runtime_primitives::traits::{BlakeTwo256, OnFinalise};
+    use runtime_primitives::testing::{Digest, DigestItem, Header};
+    use runtime_io::{with_externalities, TestExternalities};
+
+    impl_outer_origin! {
+		pub enum Origin for Test {}
+	}
+
+    #[derive(Clone, Eq, PartialEq)]
+    pub struct Test;
+
+    impl system::Trait for Test {
+        type Origin = Origin;
+        type Index = u64;
+        type BlockNumber = u64;
+        type Hash = H256;
+        type Hashing = BlakeTwo256;
+        type Digest = Digest;
+        type AccountId = H256;
+        type Header = Header;
+        type Event = ();
+        type Log = DigestItem;
+    }
+
+    impl balances::Trait for Test {
+        type Balance = u64;
+        type AccountIndex = u64;
+        type OnFreeBalanceZero = ();
+        type EnsureAccountLiquid = ();
+        type Event = ();
+    }
+
+    impl super::Trait for Test {
+        type Event = ();
+    }
+
+    type Balances = balances::Module<Test>;
+    type Multisig = Module<Test>;
+    type Address = balances::Address<Test>;
+
+    fn new_test_ext() -> TestExternalities<Blake2Hasher> {
+        let mut t = system::GenesisConfig::<Test>::default().build_storage().unwrap().0;
+        t.extend(balances::GenesisConfig::<Test> {
+            _genesis_phantom_data: ::std::marker::PhantomData,
+            balances: vec![(Keyring::Alice.to_raw_public().into(), 100),
+                           (Keyring::Bob.to_raw_public().into(), 99),
+                           (Keyring::Charlie.to_raw_public().into(), 10)],
+            transaction_base_fee: 0,
+            transaction_byte_fee: 0,
+            transfer_fee: 0,
+            creation_fee: 0,
+            existential_deposit: 0,
+            reclaim_rebate: 0,
+        }.build_storage().unwrap().0);
+        t.into()
+    }
+
+    fn address_of(user: Keyring) -> Address {
+        <Address as From<H256>>::from(user.to_raw_public().into())
+    }
+
+    fn signature_of(user: Keyring) -> <Test as system::Trait>::Origin {
+        Some(user.to_raw_public().into()).into()
+    }
+
+    #[test]
+    fn genesis_nonce() {
+        with_externalities(&mut new_test_ext(), || {
+            assert_eq!(Multisig::global_nonce(), 0);
+        });
+    }
+
+    #[test]
+    fn create() {
+        with_externalities(&mut new_test_ext(), || {
+            assert_ok!(Multisig::create(signature_of(Keyring::Alice),
+                vec![address_of(Keyring::Alice), address_of(Keyring::Bob), address_of(Keyring::Charlie)],
+                2.into()));
+        });
     }
 }
