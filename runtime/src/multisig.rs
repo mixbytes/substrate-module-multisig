@@ -21,6 +21,7 @@ pub trait Trait: balances::Trait + system::Trait {
 }
 
 
+use balances::Address as Address;
 
 // TODO special type for multisig id
 decl_module! {
@@ -28,7 +29,7 @@ decl_module! {
     fn deposit_event() = default;
 
     // creates new multi-signature wallet
-    fn create(origin, owners: Vec<balances::Address<T>>, signatures_required: <u64 as HasCompact>::Type) -> Result {
+    fn create(origin, owners: Vec<Address<T>>, signatures_required: <u64 as HasCompact>::Type) -> Result {
         let sender = ensure_signed(origin)?;
 
         let owners = owners.iter().map(|owner| <balances::Module<T>>::lookup(owner.clone()).unwrap()).collect::<Vec<_>>();
@@ -61,7 +62,7 @@ decl_module! {
 
     // requests withdrawal from a wallet
     // actual withdrawal will be made when there are enough signatures
-    fn withdraw(origin, wallet: balances::Address<T>, to: balances::Address<T>, value: <T::Balance as HasCompact>::Type) -> Result {
+    fn withdraw(origin, wallet: Address<T>, to: Address<T>, value: <T::Balance as HasCompact>::Type) -> Result {
         let who = ensure_signed(origin)?;
         let wallet = <balances::Module<T>>::lookup(wallet)?;
         let to = <balances::Module<T>>::lookup(to)?;
@@ -81,7 +82,7 @@ decl_module! {
 
         let operation_hash = T::Hashing::hash(&buf[..]);
 
-        let bitmask: u64;
+        let mut bitmask: u64;
 
 		if !<OperationBitmask<T>>::exists(operation_hash) {
 			<OperationBitmask<T>>::insert(operation_hash, 1 << index);
@@ -91,12 +92,13 @@ decl_module! {
 			bitmask = <OperationBitmask<T>>::get(operation_hash);
 			ensure!((bitmask & (1 << index)) == 0, "sender already signed");
 			<OperationBitmask<T>>::mutate(operation_hash, |bitmask| *bitmask |= 1 << index);
+			bitmask |= 1 << index;
 		}
 
 		if Self::signs_count(&bitmask) == <Signatures<T>>::get(&wallet) {
 			<OperationBitmask<T>>::remove(operation_hash);
 			Self::deposit_event(RawEvent::Withdraw(wallet.clone(), to.clone(), value));
-			return <balances::Module<T>>::transfer_without_sign(wallet, balances::address::Address::Id(to), value);
+			return <balances::Module<T>>::transfer_without_sign(wallet, to.into(), value);
 		}
 
         Ok(())
@@ -169,9 +171,10 @@ mod tests {
     use keyring::Keyring;
     use primitives::{H256, Blake2Hasher};
     use runtime_primitives::BuildStorage;
-    use runtime_primitives::traits::{BlakeTwo256, OnFinalise};
+    use runtime_primitives::traits::{BlakeTwo256};
     use runtime_primitives::testing::{Digest, DigestItem, Header};
     use runtime_io::{with_externalities, TestExternalities};
+    use balances::address;
 
     impl_outer_origin! {
 		pub enum Origin for Test {}
@@ -234,6 +237,24 @@ mod tests {
         Some(user.to_raw_public().into()).into()
     }
 
+    fn account_id_of(user: Address) -> <Test as system::Trait>::AccountId {
+        match user {
+            address::Address::Id(i) => i,
+            address::Address::Index(_) => panic!("invalid account id"),
+        }
+    }
+
+    fn wallet_id_of(creator: Keyring, nonce: u64) -> Address {
+        let creator_addr = account_id_of(address_of(creator));
+
+        let mut buf = Vec::new();
+        buf.extend_from_slice(&creator_addr.encode());
+        buf.extend_from_slice(&nonce.encode());
+        let h: <Test as system::Trait>::Hash = <Test as system::Trait>::Hashing::hash(&buf[..]);
+
+        return <Test as system::Trait>::AccountId::decode(&mut &h.encode()[..]).unwrap().into();
+    }
+
     #[test]
     fn genesis_nonce() {
         with_externalities(&mut new_test_ext(), || {
@@ -247,6 +268,48 @@ mod tests {
             assert_ok!(Multisig::create(signature_of(Keyring::Alice),
                 vec![address_of(Keyring::Alice), address_of(Keyring::Bob), address_of(Keyring::Charlie)],
                 2.into()));
+
+            assert_eq!(Multisig::signatures_required(account_id_of(wallet_id_of(Keyring::Alice, Multisig::global_nonce() - 1))), 2);
+        });
+    }
+
+    #[test]
+    fn withdraw() {
+        with_externalities(&mut new_test_ext(), || {
+            assert_ok!(Multisig::create(signature_of(Keyring::Alice),
+                vec![address_of(Keyring::Alice), address_of(Keyring::Bob), address_of(Keyring::Charlie)],
+                2.into()
+            ));
+
+            let wallet_id = wallet_id_of(Keyring::Alice, Multisig::global_nonce() - 1);
+
+            assert_ok!(Balances::transfer(signature_of(Keyring::Alice),
+                wallet_id.clone().into(),
+                10.into()
+            ));
+
+            assert_eq!(Balances::free_balance(account_id_of(wallet_id.clone())), 10);
+            println!("Wallet balance: {:}", Balances::free_balance(account_id_of(wallet_id.clone())));
+
+            let bob_balance_before = Balances::free_balance(account_id_of(address_of(Keyring::Bob)));
+
+            println!("Bob balance before: {:}", bob_balance_before);
+
+            assert_ok!(Multisig::withdraw(signature_of(Keyring::Alice),
+                wallet_id.clone(),
+                address_of(Keyring::Bob),
+                1.into()));
+
+            assert_ok!(Multisig::withdraw(signature_of(Keyring::Charlie),
+                wallet_id.clone(),
+                address_of(Keyring::Bob),
+                1.into()));
+
+            let bob_balance_after = Balances::free_balance(account_id_of(address_of(Keyring::Bob)));
+
+            println!("Bob balance after: {:}", bob_balance_after);
+
+            assert_eq!(bob_balance_before + 1, bob_balance_after);
         });
     }
 }
